@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model LifePlan {
+  id        String      @id @default(cuid())
+  name      String
+  birthYear Int
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  events    LifeEvent[]
+}
+
+model LifeEvent {
+  id          String    @id @default(cuid())
+  planId      String
+  plan        LifePlan  @relation(fields: [planId], references: [id], onDelete: Cascade)
+  age         Int
+  title       String
+  description String?
+  income      Int       @default(0)
+  expense     Int       @default(0)
+  category    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
