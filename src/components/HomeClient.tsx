@@ -1,86 +1,75 @@
 "use client";
 
 import { useState } from "react";
-import { PlanSelector } from "@/components/PlanSelector";
+import { PlanForm } from "@/components/PlanForm";
 import { PlanView } from "@/components/PlanView";
-import { BaseSettings } from "@/components/BaseSettings";
 import { Button } from "@/components/ui/button";
-import type { LifePlanModel } from "@/generated/prisma/models/LifePlan";
-import type { LifeEventModel } from "@/generated/prisma/models/LifeEvent";
+import type { Plan, PlanEvent } from "@/generated/prisma/client";
 
-type LifePlan = LifePlanModel;
-type LifeEvent = LifeEventModel;
-type PlanWithEvents = LifePlan & { events: LifeEvent[] };
+type PlanWithEvents = Plan & { events: PlanEvent[] };
 
-type Props = {
-  initialPlans: LifePlan[];
-};
+type Props = { initialPlans: Plan[] };
 
 export const HomeClient = ({ initialPlans }: Props) => {
-  const [plans, setPlans] = useState<LifePlan[]>(initialPlans);
+  const [plans, setPlans] = useState<Plan[]>(initialPlans);
   const [activePlan, setActivePlan] = useState<PlanWithEvents | null>(null);
-  const [baseAnnualIncome, setBaseAnnualIncome] = useState(400);
-  const [baseAnnualExpense, setBaseAnnualExpense] = useState(300);
-  const [initialAsset, setInitialAsset] = useState(100);
+  const [showForm, setShowForm] = useState(false);
 
   const handleSelect = async (planId: string) => {
     const res = await fetch(`/api/plans/${planId}`);
     const plan: PlanWithEvents = await res.json();
     setActivePlan(plan);
+    setShowForm(false);
   };
 
-  const handleCreate = (plan: LifePlan) => {
+  const handleCreated = (plan: Plan) => {
     setPlans((prev) => [plan, ...prev]);
     handleSelect(plan.id);
   };
 
-  const handleSettingsChange = (
-    key: "baseAnnualIncome" | "baseAnnualExpense" | "initialAsset",
-    value: number
-  ) => {
-    if (key === "baseAnnualIncome") setBaseAnnualIncome(value);
-    else if (key === "baseAnnualExpense") setBaseAnnualExpense(value);
-    else setInitialAsset(value);
-  };
-
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b px-6 py-4 flex items-center gap-4">
-        <h1 className="text-xl font-bold">LifePlan</h1>
+      <header className="border-b px-6 py-3 flex items-center gap-3">
+        <h1 className="text-lg font-bold">LifePlan</h1>
         {activePlan && (
           <>
             <span className="text-muted-foreground">/</span>
-            <span className="font-medium">{activePlan.name}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ml-auto"
-              onClick={() => setActivePlan(null)}
-            >
+            <span className="font-medium text-sm">{activePlan.name}</span>
+            <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setActivePlan(null)}>
               プラン一覧へ
             </Button>
           </>
         )}
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-full px-4 py-6 space-y-6">
         {activePlan ? (
-          <>
-            <BaseSettings
-              baseAnnualIncome={baseAnnualIncome}
-              baseAnnualExpense={baseAnnualExpense}
-              initialAsset={initialAsset}
-              onChange={handleSettingsChange}
-            />
-            <PlanView
-              plan={activePlan}
-              baseAnnualIncome={baseAnnualIncome}
-              baseAnnualExpense={baseAnnualExpense}
-              initialAsset={initialAsset}
-            />
-          </>
+          <PlanView plan={activePlan} />
+        ) : showForm ? (
+          <PlanForm onCreated={handleCreated} />
         ) : (
-          <PlanSelector plans={plans} onSelect={handleSelect} onCreate={handleCreate} />
+          <div className="max-w-lg mx-auto space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold">プラン一覧</h2>
+              <Button size="sm" onClick={() => setShowForm(true)}>+ 新規プラン</Button>
+            </div>
+            {plans.length === 0 ? (
+              <p className="text-sm text-muted-foreground">プランがありません。新規作成してください。</p>
+            ) : (
+              <div className="space-y-2">
+                {plans.map((p) => (
+                  <button
+                    key={p.id}
+                    className="w-full rounded-lg border px-4 py-3 text-left text-sm hover:bg-muted/50 transition-colors"
+                    onClick={() => handleSelect(p.id)}
+                  >
+                    <span className="font-medium">{p.name}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">{p.birthYearSelf}年生まれ</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </main>
     </div>

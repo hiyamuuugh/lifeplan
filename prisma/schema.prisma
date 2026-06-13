@@ -7,25 +7,84 @@ datasource db {
   provider = "postgresql"
 }
 
-model LifePlan {
-  id        String      @id @default(cuid())
+// プラン全体の基本設定
+model Plan {
+  id        String   @id @default(cuid())
   name      String
-  birthYear Int
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  events    LifeEvent[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 家族の生まれ年
+  birthYearSelf   Int
+  birthYearSpouse Int
+  birthYearChild1 Int?
+  birthYearChild2 Int?
+
+  // 初期資産（万円）
+  initialCash       Int @default(0)
+  initialInvestment Int @default(0)
+
+  // 基本収入（万円/年）
+  baseSalaryself   Int @default(0)
+  baseSalarySpouse Int @default(0)
+
+  // 年金（万円/年）
+  pensionSelf   Int @default(0)
+  pensionSpouse Int @default(0)
+  pensionAgeSelf   Int @default(65)
+  pensionAgeSpouse Int @default(65)
+
+  // 退職年齢
+  retirementAgeSelf   Int @default(65)
+  retirementAgeSpouse Int @default(65)
+
+  // 固定支出（万円/年）
+  annualLivingCost   Int @default(0)
+  annualHousingCost  Int @default(0)
+  annualInsurance    Int @default(0)
+
+  // 運用利回り（%）
+  investmentRate Float @default(3.0)
+
+  events PlanEvent[]
 }
 
-model LifeEvent {
-  id          String    @id @default(cuid())
-  planId      String
-  plan        LifePlan  @relation(fields: [planId], references: [id], onDelete: Cascade)
-  age         Int
-  title       String
-  description String?
-  income      Int       @default(0)
-  expense     Int       @default(0)
-  category    String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+// 年ごとのライフイベント（収入変化・支出イベント）
+model PlanEvent {
+  id     String @id @default(cuid())
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  ageSelf Int    // 本人の年齢（イベント発生時）
+  title   String
+  note    String?
+
+  // 収入変化（万円/年、その年以降に加算）
+  salaryChangeSelf   Int @default(0)
+  salaryChangeSpouse Int @default(0)
+  temporaryIncome    Int @default(0)
+
+  // 支出（万円、その年のみ）
+  eventExpense Int @default(0)
+
+  // NISA変更（万円/年、その年以降）
+  nisaChange Int @default(0)
+
+  // 車費用（万円/年）
+  carCostChange Int @default(0)
+
+  // 住宅ローン控除（万円、その年のみ）
+  mortgageDeduction Int @default(0)
+
+  // 児童手当変化（万円/年）
+  childAllowanceChange Int @default(0)
+
+  // 教育費変化（万円/年）
+  educationCostChange Int @default(0)
+
+  // 借入金返済変化（万円/年）
+  loanRepaymentChange Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

@@ -6,16 +6,6 @@ type Params = { params: Promise<{ planId: string }> };
 export async function POST(request: Request, { params }: Params) {
   const { planId } = await params;
   const body = await request.json();
-  const event = await prisma.lifeEvent.create({
-    data: {
-      planId,
-      age: body.age,
-      title: body.title,
-      description: body.description ?? null,
-      income: body.income ?? 0,
-      expense: body.expense ?? 0,
-      category: body.category,
-    },
-  });
+  const event = await prisma.planEvent.create({ data: { planId, ...body } });
   return NextResponse.json(event, { status: 201 });
 }
