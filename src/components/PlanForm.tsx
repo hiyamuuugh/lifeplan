@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Plan } from "@/generated/prisma/client";
+import type { Plan } from "@/generated/prisma";
 import type { PlanFormData } from "@/types/cashflow";
 
 const CURRENT_YEAR = new Date().getFullYear();

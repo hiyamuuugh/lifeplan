@@ -1,6 +1,6 @@
 import { neonConfig } from "@neondatabase/serverless";
 import { PrismaNeon } from "@prisma/adapter-neon";
-import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaClient } from "@/generated/prisma";
 
 if (typeof WebSocket === "undefined") {
   // eslint-disable-next-line @typescript-eslint/no-require-imports

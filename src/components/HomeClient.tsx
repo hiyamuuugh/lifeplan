@@ -4,7 +4,7 @@ import { useState } from "react";
 import { PlanForm } from "@/components/PlanForm";
 import { PlanView } from "@/components/PlanView";
 import { Button } from "@/components/ui/button";
-import type { Plan, PlanEvent } from "@/generated/prisma/client";
+import type { Plan, PlanEvent } from "@/generated/prisma";
 
 type PlanWithEvents = Plan & { events: PlanEvent[] };
 
