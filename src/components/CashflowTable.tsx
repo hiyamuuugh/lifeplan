@@ -1,143 +1,197 @@
 "use client";
 
+import { useState } from "react";
 import type { CashflowRow } from "@/lib/calc-cashflow";
 
 type Props = { rows: CashflowRow[] };
 
 const fmt = (v: number) => v.toLocaleString();
-const cell = (v: number, highlight = false) => {
-  const cls = highlight
-    ? v < 0
-      ? "text-red-600 font-bold"
-      : "font-bold"
-    : v !== 0
-    ? ""
-    : "text-muted-foreground/40";
-  return <td key={Math.random()} className={`px-2 py-0.5 text-right text-xs whitespace-nowrap ${cls}`}>{v !== 0 || highlight ? fmt(v) : ""}</td>;
+
+const COL_W = "w-[56px] min-w-[56px] max-w-[56px]";
+
+const cell = (v: number, key: string | number) => {
+  const cls = v < 0 ? "text-red-600" : v !== 0 ? "" : "text-slate-300";
+  return (
+    <td key={key} className={`${COL_W} px-1 py-0.5 text-right text-xs border-r border-b border-slate-200 ${cls}`}>
+      {v !== 0 ? fmt(v) : ""}
+    </td>
+  );
 };
 
-const SECTION_HEADER = "bg-muted/60 text-xs font-semibold";
-const ROW_HOVER = "hover:bg-muted/30 transition-colors";
+const stickyLabel = (bg: string, extra = "") =>
+  `sticky left-0 z-10 ${bg} px-3 py-0.5 text-xs border-r border-b border-slate-200 whitespace-nowrap ${extra}`;
 
-export const CashflowTable = ({ rows }: Props) => (
-  <div className="overflow-x-auto rounded-lg border text-xs">
-    <table className="min-w-max border-collapse">
-      <thead>
-        <tr className="bg-muted">
-          <th className="sticky left-0 z-10 bg-muted px-3 py-1.5 text-left text-xs font-semibold min-w-[100px]">項目</th>
-          {rows.map((r) => (
-            <th key={r.year} className="px-2 py-1.5 text-center text-xs font-medium min-w-[52px]">
-              {r.year}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {/* 年齢 */}
-        <tr className={ROW_HOVER}>
-          <td className="sticky left-0 z-10 bg-background px-3 py-0.5 text-xs text-muted-foreground">本人</td>
-          {rows.map((r) => <td key={r.year} className="px-2 py-0.5 text-center text-xs">{r.ageSelf}</td>)}
-        </tr>
-        <tr className={ROW_HOVER}>
-          <td className="sticky left-0 z-10 bg-background px-3 py-0.5 text-xs text-muted-foreground">配偶者</td>
-          {rows.map((r) => <td key={r.year} className="px-2 py-0.5 text-center text-xs">{r.ageSpouse}</td>)}
-        </tr>
-        {rows.some((r) => r.ageChild1 !== null) && (
-          <tr className={ROW_HOVER}>
-            <td className="sticky left-0 z-10 bg-background px-3 py-0.5 text-xs text-muted-foreground">子1</td>
-            {rows.map((r) => <td key={r.year} className="px-2 py-0.5 text-center text-xs">{r.ageChild1 ?? ""}</td>)}
-          </tr>
-        )}
-        {rows.some((r) => r.ageChild2 !== null) && (
-          <tr className={ROW_HOVER}>
-            <td className="sticky left-0 z-10 bg-background px-3 py-0.5 text-xs text-muted-foreground">子2</td>
-            {rows.map((r) => <td key={r.year} className="px-2 py-0.5 text-center text-xs">{r.ageChild2 ?? ""}</td>)}
-          </tr>
-        )}
-        {/* ライフイベント */}
-        <tr className={ROW_HOVER}>
-          <td className="sticky left-0 z-10 bg-background px-3 py-0.5 text-xs text-indigo-600 font-medium">イベント</td>
-          {rows.map((r) => (
-            <td key={r.year} className="px-2 py-0.5 text-center text-xs text-indigo-600 whitespace-nowrap">
-              {r.events.join(" / ")}
-            </td>
-          ))}
-        </tr>
-
-        {/* 収入 */}
-        <tr className={SECTION_HEADER}><td className="sticky left-0 z-10 bg-muted/60 px-3 py-1" colSpan={rows.length + 1}>収入（万円）</td></tr>
-        {[
-          ["本人収入", "salarySelf"],
-          ["配偶者収入", "salarySpouse"],
-          ["臨時収入", "temporaryIncome"],
-          ["本人年金", "pensionSelf"],
-          ["配偶者年金", "pensionSpouse"],
-          ["住宅ローン控除", "mortgageDeduction"],
-          ["児童手当", "childAllowance"],
-        ].map(([label, key]) => (
-          <tr key={key} className={ROW_HOVER}>
-            <td className="sticky left-0 z-10 bg-background px-3 py-0.5 text-xs pl-5 text-muted-foreground">{label}</td>
-            {rows.map((r) => cell(r[key as keyof CashflowRow] as number))}
-          </tr>
-        ))}
-        <tr className="bg-green-50 dark:bg-green-950/20 font-semibold">
-          <td className="sticky left-0 z-10 bg-green-50 dark:bg-green-950/20 px-3 py-0.5 text-xs">収入合計</td>
-          {rows.map((r) => <td key={r.year} className="px-2 py-0.5 text-right text-xs font-semibold">{fmt(r.totalIncome)}</td>)}
-        </tr>
-
-        {/* 支出 */}
-        <tr className={SECTION_HEADER}><td className="sticky left-0 z-10 bg-muted/60 px-3 py-1" colSpan={rows.length + 1}>支出（万円）</td></tr>
-        {[
-          ["生活費", "livingCost"],
-          ["住宅関連費", "housingCost"],
-          ["教育費", "educationCost"],
-          ["イベント支出", "eventExpense"],
-          ["借入金返済", "loanRepayment"],
-          ["保険料", "insurance"],
-          ["NISA", "nisa"],
-          ["自動車", "carCost"],
-        ].map(([label, key]) => (
-          <tr key={key} className={ROW_HOVER}>
-            <td className="sticky left-0 z-10 bg-background px-3 py-0.5 text-xs pl-5 text-muted-foreground">{label}</td>
-            {rows.map((r) => cell(r[key as keyof CashflowRow] as number))}
-          </tr>
-        ))}
-        <tr className="bg-red-50 dark:bg-red-950/20 font-semibold">
-          <td className="sticky left-0 z-10 bg-red-50 dark:bg-red-950/20 px-3 py-0.5 text-xs">支出合計</td>
-          {rows.map((r) => <td key={r.year} className="px-2 py-0.5 text-right text-xs font-semibold">{fmt(r.totalExpense)}</td>)}
-        </tr>
-
-        {/* 収支・資産 */}
-        <tr className={SECTION_HEADER}><td className="sticky left-0 z-10 bg-muted/60 px-3 py-1" colSpan={rows.length + 1}>収支・資産（万円）</td></tr>
-        <tr className={ROW_HOVER}>
-          <td className="sticky left-0 z-10 bg-background px-3 py-0.5 text-xs font-semibold">年間収支</td>
-          {rows.map((r) => (
-            <td key={r.year} className={`px-2 py-0.5 text-right text-xs font-bold ${r.annualBalance < 0 ? "text-red-600 bg-red-50 dark:bg-red-950/20" : "text-emerald-600"}`}>
-              {fmt(r.annualBalance)}
-            </td>
-          ))}
-        </tr>
-        <tr className={ROW_HOVER}>
-          <td className="sticky left-0 z-10 bg-background px-3 py-0.5 text-xs font-semibold">口座残高</td>
-          {rows.map((r) => (
-            <td key={r.year} className={`px-2 py-0.5 text-right text-xs font-bold ${r.cashBalance < 0 ? "text-red-600 bg-red-50 dark:bg-red-950/20" : ""}`}>
-              {fmt(r.cashBalance)}
-            </td>
-          ))}
-        </tr>
-        <tr className={ROW_HOVER}>
-          <td className="sticky left-0 z-10 bg-background px-3 py-0.5 text-xs">運用額</td>
-          {rows.map((r) => <td key={r.year} className="px-2 py-0.5 text-right text-xs">{fmt(r.investmentBalance)}</td>)}
-        </tr>
-        <tr className="bg-indigo-50 dark:bg-indigo-950/20">
-          <td className="sticky left-0 z-10 bg-indigo-50 dark:bg-indigo-950/20 px-3 py-0.5 text-xs font-bold">総資産</td>
-          {rows.map((r) => (
-            <td key={r.year} className={`px-2 py-0.5 text-right text-xs font-bold ${r.totalAsset < 0 ? "text-red-600" : "text-indigo-700 dark:text-indigo-300"}`}>
-              {fmt(r.totalAsset)}
-            </td>
-          ))}
-        </tr>
-      </tbody>
-    </table>
-  </div>
+const SectionHeader = ({ label, bg, textColor, cols }: { label: string; bg: string; textColor: string; cols: number }) => (
+  <tr>
+    <td className={`sticky left-0 z-10 ${bg} ${textColor} px-3 py-1 text-xs font-semibold border-r border-b border-slate-300`}>
+      {label}
+    </td>
+    {Array.from({ length: cols }).map((_, i) => (
+      <td key={i} className={`${COL_W} ${bg} border-r border-b border-slate-300`} />
+    ))}
+  </tr>
 );
+
+export const CashflowTable = ({ rows }: Props) => {
+  const [agesOpen, setAgesOpen] = useState(false);
+
+  const hasChild1 = rows.some((r) => r.ageChild1 !== null);
+  const hasChild2 = rows.some((r) => r.ageChild2 !== null);
+
+  return (
+    <div className="overflow-auto rounded-lg border border-slate-200 text-xs" style={{ maxHeight: "60vh" }}>
+      <table className="border-collapse table-fixed">
+        <colgroup>
+          <col className="w-[120px]" />
+          {rows.map((r) => <col key={r.year} className="w-[56px]" />)}
+        </colgroup>
+
+        <thead className="sticky top-0 z-30">
+          {/* 西暦行（常時表示） */}
+          <tr>
+            <th className="sticky left-0 z-30 bg-slate-800 text-white px-3 py-1 text-left text-xs font-semibold w-[120px] border border-slate-600">
+              <button
+                onClick={() => setAgesOpen((v) => !v)}
+                className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+              >
+                <span>{agesOpen ? "▾" : "▸"}</span>
+                <span>西暦</span>
+              </button>
+            </th>
+            {rows.map((r) => (
+              <th key={r.year} className={`${COL_W} px-1 py-1 text-center text-xs font-semibold bg-slate-800 text-white border border-slate-600`}>
+                {r.year}
+              </th>
+            ))}
+          </tr>
+
+          {/* 年齢行（トグル） */}
+          {agesOpen && (
+            <>
+              <tr>
+                <th className="sticky left-0 z-30 bg-white text-slate-600 px-3 py-0.5 text-left text-xs font-normal w-[120px] border border-slate-300">本人</th>
+                {rows.map((r) => <th key={r.year} className={`${COL_W} px-1 py-0.5 text-center text-xs font-normal bg-white text-slate-600 border border-slate-300`}>{r.ageSelf}</th>)}
+              </tr>
+              <tr>
+                <th className="sticky left-0 z-30 bg-white text-slate-600 px-3 py-0.5 text-left text-xs font-normal w-[120px] border border-slate-300">配偶者</th>
+                {rows.map((r) => <th key={r.year} className={`${COL_W} px-1 py-0.5 text-center text-xs font-normal bg-white text-slate-600 border border-slate-300`}>{r.ageSpouse}</th>)}
+              </tr>
+              {hasChild1 && (
+                <tr>
+                  <th className="sticky left-0 z-30 bg-white text-slate-600 px-3 py-0.5 text-left text-xs font-normal w-[120px] border border-slate-300">子1</th>
+                  {rows.map((r) => <th key={r.year} className={`${COL_W} px-1 py-0.5 text-center text-xs font-normal bg-white text-slate-600 border border-slate-300`}>{r.ageChild1 ?? ""}</th>)}
+                </tr>
+              )}
+              {hasChild2 && (
+                <tr>
+                  <th className="sticky left-0 z-30 bg-white text-slate-600 px-3 py-0.5 text-left text-xs font-normal w-[120px] border border-slate-300">子2</th>
+                  {rows.map((r) => <th key={r.year} className={`${COL_W} px-1 py-0.5 text-center text-xs font-normal bg-white text-slate-600 border border-slate-300`}>{r.ageChild2 ?? ""}</th>)}
+                </tr>
+              )}
+            </>
+          )}
+        </thead>
+
+        <tbody>
+          {/* ライフイベント */}
+          <tr className="bg-indigo-50">
+            <td className={stickyLabel("bg-indigo-50") + " text-indigo-700 font-medium"}>イベント</td>
+            {rows.map((r) => (
+              <td key={r.year} className={`${COL_W} px-1 py-0.5 text-[10px] text-indigo-600 border-r border-b border-slate-200 align-top`}>
+                {r.events.filter((e) => e !== "年間イベント支出" && e !== "初期設定").map((e, i) => (
+                  <div key={i} className="leading-tight break-words">{e}</div>
+                ))}
+              </td>
+            ))}
+          </tr>
+
+          {/* 収入 */}
+          <SectionHeader label="収入（万円）" bg="bg-emerald-600" textColor="text-white" cols={rows.length} />
+          {([
+            ["本人収入",       "salarySelf",         "bg-emerald-50",   "text-emerald-700"],
+            ["配偶者収入",     "salarySpouse",        "bg-teal-50",      "text-teal-700"],
+            ["臨時収入",       "temporaryIncome",     "bg-cyan-50",      "text-cyan-700"],
+            ["本人年金",       "pensionSelf",         "bg-emerald-50",   "text-emerald-700"],
+            ["配偶者年金",     "pensionSpouse",       "bg-teal-50",      "text-teal-700"],
+            ["住宅ローン控除", "mortgageDeduction",   "bg-lime-50",      "text-lime-700"],
+            ["児童手当",       "childAllowance",      "bg-sky-50",       "text-sky-700"],
+          ] as const).map(([label, key, bg, tc]) => (
+            <tr key={key} className={bg}>
+              <td className={stickyLabel(bg) + ` pl-5 ${tc} font-medium`}>{label}</td>
+              {rows.map((r) => cell(r[key as keyof CashflowRow] as number, r.year))}
+            </tr>
+          ))}
+          <tr className="bg-emerald-100">
+            <td className={stickyLabel("bg-emerald-100") + " font-semibold text-emerald-800"}>収入合計</td>
+            {rows.map((r) => (
+              <td key={r.year} className={`${COL_W} px-1 py-0.5 text-right text-xs font-semibold border-r border-b border-slate-200 text-emerald-800`}>
+                {fmt(r.totalIncome)}
+              </td>
+            ))}
+          </tr>
+
+          {/* 支出 */}
+          <SectionHeader label="支出（万円）" bg="bg-rose-500" textColor="text-white" cols={rows.length} />
+          {([
+            ["生活費",     "livingCost",    "bg-rose-50",    "text-rose-700"],
+            ["住宅関連費", "housingCost",   "bg-orange-50",  "text-orange-700"],
+            ["教育費",     "educationCost", "bg-violet-50",  "text-violet-700"],
+            ["イベント",   "eventExpense",  "bg-pink-50",    "text-pink-700"],
+            ["借入金返済", "loanRepayment", "bg-orange-50",  "text-orange-700"],
+            ["保険料",     "insurance",     "bg-red-50",     "text-red-700"],
+            ["NISA",       "nisa",          "bg-indigo-50",  "text-indigo-700"],
+            ["自動車",     "carCost",       "bg-amber-50",   "text-amber-700"],
+          ] as const).map(([label, key, bg, tc]) => (
+            <tr key={key} className={bg}>
+              <td className={stickyLabel(bg) + ` pl-5 ${tc} font-medium`}>{label}</td>
+              {rows.map((r) => cell(r[key as keyof CashflowRow] as number, r.year))}
+            </tr>
+          ))}
+          <tr className="bg-rose-100">
+            <td className={stickyLabel("bg-rose-100") + " font-semibold text-rose-800"}>支出合計</td>
+            {rows.map((r) => (
+              <td key={r.year} className={`${COL_W} px-1 py-0.5 text-right text-xs font-semibold border-r border-b border-slate-200 text-rose-800`}>
+                {fmt(r.totalExpense)}
+              </td>
+            ))}
+          </tr>
+
+          {/* 収支・資産 */}
+          <SectionHeader label="収支・資産（万円）" bg="bg-slate-700" textColor="text-white" cols={rows.length} />
+          <tr className="bg-sky-50">
+            <td className={stickyLabel("bg-sky-50") + " font-semibold text-sky-700"}>年間収支</td>
+            {rows.map((r) => (
+              <td key={r.year} className={`${COL_W} px-1 py-0.5 text-right text-xs font-bold border-r border-b border-slate-200 ${r.annualBalance < 0 ? "text-red-600 bg-red-50" : "text-sky-700"}`}>
+                {fmt(r.annualBalance)}
+              </td>
+            ))}
+          </tr>
+          <tr className="bg-teal-50">
+            <td className={stickyLabel("bg-teal-50") + " font-semibold text-teal-700"}>口座残高</td>
+            {rows.map((r) => (
+              <td key={r.year} className={`${COL_W} px-1 py-0.5 text-right text-xs font-bold border-r border-b border-slate-200 ${r.cashBalance < 0 ? "text-red-600 bg-red-50" : "text-teal-700"}`}>
+                {fmt(r.cashBalance)}
+              </td>
+            ))}
+          </tr>
+          <tr className="bg-cyan-50">
+            <td className={stickyLabel("bg-cyan-50") + " text-cyan-700"}>運用額</td>
+            {rows.map((r) => (
+              <td key={r.year} className={`${COL_W} px-1 py-0.5 text-right text-xs border-r border-b border-slate-200 text-cyan-700`}>
+                {fmt(r.investmentBalance)}
+              </td>
+            ))}
+          </tr>
+          <tr className="bg-indigo-50">
+            <td className={stickyLabel("bg-indigo-50") + " font-bold text-indigo-800"}>総資産</td>
+            {rows.map((r) => (
+              <td key={r.year} className={`${COL_W} px-1 py-0.5 text-right text-xs font-bold border-r border-b border-slate-200 ${r.totalAsset < 0 ? "text-red-600" : "text-indigo-700"}`}>
+                {fmt(r.totalAsset)}
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+};
