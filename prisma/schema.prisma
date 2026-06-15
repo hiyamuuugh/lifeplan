@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
@@ -13,6 +13,12 @@ model Plan {
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // 家族の名前（未設定時は「本人」「配偶者」「子1」「子2」）
+  nameSelf    String?
+  nameSpouse  String?
+  nameChild1  String?
+  nameChild2  String?
 
   // 家族の生まれ年
   birthYearSelf   Int
@@ -46,6 +52,13 @@ model Plan {
   // 運用利回り（%）
   investmentRate Float @default(3.0)
 
+  // 給与上昇率（%/年、複利）
+  salaryGrowthRateSelf   Float @default(0.0)
+  salaryGrowthRateSpouse Float @default(0.0)
+
+  // 生活費上昇率（%/年）
+  livingCostGrowthRate Float @default(0.0)
+
   events PlanEvent[]
 }
 
@@ -73,8 +86,9 @@ model PlanEvent {
   // 車費用（万円/年）
   carCostChange Int @default(0)
 
-  // 住宅ローン控除（万円、その年のみ）
-  mortgageDeduction Int @default(0)
+  // 住宅ローン控除（万円/年）・適用期間（本人年齢）
+  mortgageDeduction       Int  @default(0)
+  mortgageDeductionEndAge Int? // nullの場合は1年のみ
 
   // 児童手当変化（万円/年）
   childAllowanceChange Int @default(0)
@@ -84,6 +98,11 @@ model PlanEvent {
 
   // 借入金返済変化（万円/年）
   loanRepaymentChange Int @default(0)
+
+  // 生活費・住宅関連費・保険料変化（万円/年）
+  livingCostChange  Int @default(0)
+  housingCostChange Int @default(0)
+  insuranceChange   Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

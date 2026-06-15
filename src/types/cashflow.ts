@@ -24,16 +24,22 @@ export type EventFormData = {
   ageSelf: number;
   title: string;
   note: string;
+  // 収入
   salaryChangeSelf: number;
   salaryChangeSpouse: number;
   temporaryIncome: number;
-  eventExpense: number;
-  nisaChange: number;
-  carCostChange: number;
   mortgageDeduction: number;
+  mortgageDeductionEndAge: number | null;
   childAllowanceChange: number;
+  // 支出
+  eventExpense: number;
+  livingCostChange: number;
+  housingCostChange: number;
   educationCostChange: number;
   loanRepaymentChange: number;
+  insuranceChange: number;
+  carCostChange: number;
+  nisaChange: number;
 };
 
 export const DEFAULT_EVENT: EventFormData = {
@@ -43,11 +49,15 @@ export const DEFAULT_EVENT: EventFormData = {
   salaryChangeSelf: 0,
   salaryChangeSpouse: 0,
   temporaryIncome: 0,
-  eventExpense: 0,
-  nisaChange: 0,
-  carCostChange: 0,
   mortgageDeduction: 0,
+  mortgageDeductionEndAge: null,
   childAllowanceChange: 0,
+  eventExpense: 0,
+  livingCostChange: 0,
+  housingCostChange: 0,
   educationCostChange: 0,
   loanRepaymentChange: 0,
+  insuranceChange: 0,
+  carCostChange: 0,
+  nisaChange: 0,
 };

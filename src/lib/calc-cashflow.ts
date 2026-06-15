@@ -1,4 +1,4 @@
-import type { Plan, PlanEvent } from "@/generated/prisma/client";
+import type { Plan, PlanEvent } from "@/generated/prisma";
 
 export type CashflowRow = {
   year: number;
@@ -52,6 +52,9 @@ export const calcCashflow = (plan: PlanWithEvents): CashflowRow[] => {
   let childAllowance = 0;
   let educationCost = 0;
   let loanRepayment = 0;
+  let livingCostDelta = 0;
+  let housingCostDelta = 0;
+  let insuranceDelta = 0;
 
   let cashBalance = plan.initialCash;
   let investmentBalance = plan.initialInvestment;
@@ -69,27 +72,41 @@ export const calcCashflow = (plan: PlanWithEvents): CashflowRow[] => {
 
     // 累積変化を適用（その年以降に持続）
     for (const ev of yearEvents) {
-      salarySelf += ev.salaryChangeSelf;
-      salarySpouse += ev.salaryChangeSpouse;
-      nisa += ev.nisaChange;
-      carCost += ev.carCostChange;
-      childAllowance += ev.childAllowanceChange;
-      educationCost += ev.educationCostChange;
-      loanRepayment += ev.loanRepaymentChange;
+      salarySelf += ev.salaryChangeSelf ?? 0;
+      salarySpouse += ev.salaryChangeSpouse ?? 0;
+      nisa += ev.nisaChange ?? 0;
+      carCost += ev.carCostChange ?? 0;
+      childAllowance += ev.childAllowanceChange ?? 0;
+      educationCost += ev.educationCostChange ?? 0;
+      loanRepayment += ev.loanRepaymentChange ?? 0;
+      livingCostDelta += ev.livingCostChange ?? 0;
+      housingCostDelta += ev.housingCostChange ?? 0;
+      insuranceDelta += ev.insuranceChange ?? 0;
     }
 
-    // 退職後は給与0
-    const effectiveSalarySelf = ageSelf >= plan.retirementAgeSelf ? 0 : salarySelf;
-    const effectiveSalarySpouse = ageSelf >= plan.retirementAgeSpouse ? 0 : salarySpouse;
+    // 退職後は給与0（上昇率は複利で毎年適用）
+    const yearsElapsed = ageSelf - START_AGE;
+    const growthSelf = Math.pow(1 + (plan.salaryGrowthRateSelf ?? 0) / 100, yearsElapsed);
+    const growthSpouse = Math.pow(1 + (plan.salaryGrowthRateSpouse ?? 0) / 100, yearsElapsed);
+    const effectiveSalarySelf = ageSelf >= plan.retirementAgeSelf ? 0 : Math.round(salarySelf * growthSelf);
+    const effectiveSalarySpouse = ageSelf >= plan.retirementAgeSpouse ? 0 : Math.round(salarySpouse * growthSpouse);
 
     // 年金（退職後）
     const effectivePensionSelf = ageSelf >= plan.pensionAgeSelf ? plan.pensionSelf : 0;
     const effectivePensionSpouse = ageSelf >= plan.pensionAgeSpouse ? plan.pensionSpouse : 0;
 
     // その年のみの値
-    const temporaryIncome = yearEvents.reduce((s, e) => s + e.temporaryIncome, 0);
-    const mortgageDeduction = yearEvents.reduce((s, e) => s + e.mortgageDeduction, 0);
-    const eventExpense = yearEvents.reduce((s, e) => s + e.eventExpense, 0);
+    const temporaryIncome = yearEvents.reduce((s, e) => s + (e.temporaryIncome ?? 0), 0);
+    const eventExpense = yearEvents.reduce((s, e) => s + (e.eventExpense ?? 0), 0);
+
+    // 住宅ローン控除: 適用中のイベント（開始ageSelf <= ageSelf <= endAge）の合計
+    const mortgageDeduction = plan.events.reduce((s, e) => {
+      const amt = e.mortgageDeduction ?? 0;
+      if (amt === 0) return s;
+      const start = e.ageSelf;
+      const end = e.mortgageDeductionEndAge ?? start;
+      return ageSelf >= start && ageSelf <= end ? s + amt : s;
+    }, 0);
 
     // NISA は退職後0
     const effectiveNisa = ageSelf >= plan.retirementAgeSelf ? 0 : nisa;
@@ -103,13 +120,18 @@ export const calcCashflow = (plan: PlanWithEvents): CashflowRow[] => {
       mortgageDeduction +
       childAllowance;
 
+    const livingCostGrowth = Math.pow(1 + (plan.livingCostGrowthRate ?? 0) / 100, yearsElapsed);
+    const effectiveLivingCost = Math.round((plan.annualLivingCost + livingCostDelta) * livingCostGrowth);
+    const effectiveHousingCost = plan.annualHousingCost + housingCostDelta;
+    const effectiveInsurance = plan.annualInsurance + insuranceDelta;
+
     const totalExpense =
-      plan.annualLivingCost +
-      plan.annualHousingCost +
+      effectiveLivingCost +
+      effectiveHousingCost +
       educationCost +
       eventExpense +
       loanRepayment +
-      plan.annualInsurance +
+      effectiveInsurance +
       effectiveNisa +
       carCost;
 
@@ -140,12 +162,12 @@ export const calcCashflow = (plan: PlanWithEvents): CashflowRow[] => {
       childAllowance,
       totalIncome,
 
-      livingCost: plan.annualLivingCost,
-      housingCost: plan.annualHousingCost,
+      livingCost: effectiveLivingCost,
+      housingCost: effectiveHousingCost,
       educationCost,
       eventExpense,
       loanRepayment,
-      insurance: plan.annualInsurance,
+      insurance: effectiveInsurance,
       nisa: effectiveNisa,
       carCost,
       totalExpense,
